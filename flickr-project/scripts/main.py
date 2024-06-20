@@ -166,27 +166,27 @@ for i in range(n_page):
         cursor = conn.cursor()
 
         # データを取得するクエリ
-        query = "SELECT author FROM comment"
+        query = "SELECT user_id FROM comment"
         cursor.execute(query)
         # 結果をすべてリストに格納
         results = cursor.fetchall()
         last_processed_author = get_last_processed_author()
         skip = last_processed_author is not None
 
-        for (author,) in results:
+        for (user_id) in results:
             if skip:
-                if author == last_processed_author:
+                if user_id == last_processed_author:
                     skip = False
                 continue
 
             try:
                 # 検索したいuser_idの値
-                search_user_id = author
+                search_user_id = user_id
 
                 # ユーザーIDが存在しない場合にのみ以降の処理を実行する
                 if not check_and_skip_user_id(conn, search_user_id):
                     # 写真コメントユーザ情報
-                    response = flickr.people.getInfo(user_id=author)
+                    response = flickr.people.getInfo(user_id=search_user_id)
                     time.sleep(1)
                     person = response["person"]
                     username = person["username"]["_content"]
@@ -196,7 +196,7 @@ for i in range(n_page):
                     firstdate = int(person.get("firstdate", {}).get("_content", 0))
                     photos_count = int(person["photos"]["count"]['_content'])
 
-                    response = flickr.people.getPhotos(user_id=author, per_page=1, extras="tags,url_n")
+                    response = flickr.people.getPhotos(user_id=search_user_id, per_page=1, extras="tags,url_n")
                     time.sleep(1)
                     photos = response.get("photos", {})
                     first_photo = photos.get("photo", [{}])[0]
@@ -205,15 +205,15 @@ for i in range(n_page):
                     tags = first_photo.get("tags", "None")
                     url_n = first_photo.get("url_n", "None")
 
-                    insert_data_user(author, username, location, description, firstdatetaken, firstdate, photos_count, photo_id, title, tags, url_n)
+                    insert_data_user(search_user_id, username, location, description, firstdatetaken, firstdate, photos_count, photo_id, title, tags, url_n)
 
                 # 進捗を保存
-                save_last_processed_author(author)
+                save_last_processed_author(search_user_id)
 
             except Exception as e:
                 # エラー発生時に進捗を保存
-                save_last_processed_author(author)
-                print(f"Error processing author {author}: {e}")
+                save_last_processed_author(search_user_id)
+                print(f"Error processing author {search_user_id}: {e}")
                 continue
 
     finally:
@@ -278,27 +278,27 @@ for i in range(n_page):
         cursor = conn.cursor()
 
         # データを取得するクエリ
-        query = "SELECT favorite_id FROM favorite"
+        query = "SELECT user_id FROM favorite"
         cursor.execute(query)
         # 結果をすべてリストに格納
         results = cursor.fetchall()
         last_processed_favorite_id = get_last_processed_favorite_id()
         skip = last_processed_favorite_id is not None
 
-        for (favorite_id,) in results:
+        for (user_id) in results:
             if skip:
-                if favorite_id == last_processed_favorite_id:
+                if user_id == last_processed_favorite_id:
                     skip = False
                 continue
 
             try:
                 # 検索したいuser_idの値
-                search_user_id = favorite_id
+                search_user_id = user_id
 
                 # ユーザーIDが存在しない場合にのみ以降の処理を実行する
                 if not check_and_skip_user_id(conn, search_user_id):
                     # 写真お気に入りユーザ情報
-                    response = flickr.people.getInfo(user_id=favorite_id)
+                    response = flickr.people.getInfo(user_id=search_user_id)
                     time.sleep(1)
                     person = response["person"]
                     username = person["username"]["_content"]
@@ -308,7 +308,7 @@ for i in range(n_page):
                     firstdate = int(person.get("firstdate", {}).get("_content", 0))
                     photos_count = int(person["photos"]["count"]["_content"])
 
-                    response = flickr.people.getPhotos(user_id=favorite_id, per_page=1, extras="tags,url_n")
+                    response = flickr.people.getPhotos(user_id=search_user_id, per_page=1, extras="tags,url_n")
                     time.sleep(1)
                     photos = response.get("photos", {})
                     first_photo = photos.get("photo", [{}])[0]
@@ -317,15 +317,15 @@ for i in range(n_page):
                     tags = first_photo.get("tags", "None")
                     url_n = first_photo.get("url_n", "None")
 
-                    insert_data_user(favorite_id, username, location, description, firstdatetaken, firstdate, photos_count, photo_id, title, tags, url_n)
+                    insert_data_user(search_user_id, username, location, description, firstdatetaken, firstdate, photos_count, photo_id, title, tags, url_n)
 
                 # 進捗を保存
-                save_last_processed_favorite_id(favorite_id)
+                save_last_processed_favorite_id(search_user_id)
 
             except Exception as e:
                 # エラー発生時に進捗を保存
-                save_last_processed_favorite_id(favorite_id)
-                print(f"Error processing favorite_id {favorite_id}: {e}")
+                save_last_processed_favorite_id(search_user_id)
+                print(f"Error processing favorite_id {search_user_id}: {e}")
                 continue
 
     finally:
