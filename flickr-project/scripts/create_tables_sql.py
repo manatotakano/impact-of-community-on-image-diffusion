@@ -1,3 +1,4 @@
+import mysql.connector
 def create_database_and_tables(db_config):
     # データベース作成
     conn = mysql.connector.connect(

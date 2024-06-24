@@ -1,3 +1,4 @@
+import mysql.connector
 #user_idスキップチェック関数
 def check_and_skip_user_id(connection, search_user_id):
     try:

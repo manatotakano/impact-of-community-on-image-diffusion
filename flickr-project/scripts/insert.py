@@ -1,3 +1,7 @@
+import mysql.connector,os,sys,config
+# プロジェクトのルートディレクトリを追加
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+db_config = config.db_config
 # photoデータ挿入関数
 def insert_data_photo(photo_id, owner_id, title, description, dateupload, views, count_faves, tags, latitude, longitude, url_n):
     try:

@@ -1,3 +1,4 @@
+import os
 # photo_searchの再開位置を取得する関数
 def get_last_processed_page():
     progress_file = "progress_photo_search.txt"
