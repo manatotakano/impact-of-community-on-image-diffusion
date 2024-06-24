@@ -1,6 +1,3 @@
-import mysql.connector
-import os, time, sys, math
-from flickrapi import FlickrAPI
 #mySQL接続情報
 db_config = {
     "host": "localhost",
