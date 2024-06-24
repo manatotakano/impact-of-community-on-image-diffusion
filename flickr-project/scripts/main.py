@@ -1,3 +1,14 @@
+import mysql.connector,os, time, sys, math,config
+from flickrapi import FlickrAPI
+from create_tables_sql import create_database_and_tables
+from last_processed import get_last_processed_page,save_last_processed_page,get_last_processed_owner_id,save_last_processed_owner_id,get_last_processed_comment_photo_id,save_last_processed_comment_photo_id,get_last_processed_author,save_last_processed_author,get_last_processed_favorite_photo_id,save_last_processed_favorite_photo_id,get_last_processed_favorite_id,save_last_processed_favorite_id
+from insert import insert_data_photo,insert_data_user,insert_data_comment,insert_data_favorite
+from cheak_and_skip import check_and_skip_user_id,check_and_skip_photo_id
+# プロジェクトのルートディレクトリを追加
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+db_config = config.db_config
+key = config.flickr_api_key
+secret = config.flickr_api_secret
 
 # MySQLデータベース、テーブル作成
 create_database_and_tables(db_config)
@@ -27,24 +38,24 @@ for i in range(n_page):
         conn = mysql.connector.connect(**db_config)
         photos = response["photos"]["photo"]
         for photo in photos:
-          photo_id = photo["id"]
-          owner_id = photo["owner"]
-          title = photo["title"]
-          description = photo["description"]['_content']
-          dateupload = int(photo["dateupload"])
-          views = int(photo["views"])
-          count_faves = int(photo["count_faves"])
-          tags = photo["tags"]
-          latitude = float(photo["latitude"])
-          longitude = float(photo["longitude"])
-          url_n = photo["url_n"]
-
           # 検索したいphoto_idの値
-          search_photo_id = photo_id
+          search_photo_id = photo["id"]
 
           # ユーザーIDが存在しない場合にのみ以降の処理を実行する
           if not check_and_skip_photo_id(conn, search_photo_id):
-             insert_data_photo(photo_id, owner_id, title, description, dateupload, views, count_faves, tags, latitude, longitude, url_n)
+             insert_data_photo(
+                 photo["id"],
+                 photo["owner"],
+                 photo["title"],
+                 photo["description"]['_content'],
+                 int(photo["dateupload"]),
+                 int(photo["views"]),
+                 int(photo["count_faves"]),
+                 photo["tags"],
+                 float(photo["latitude"]),
+                 float(photo["longitude"]),
+                 photo["url_n"],
+             )
 
     finally:
         conn.close()
@@ -84,14 +95,19 @@ for i in range(n_page):
                     response = flickr.people.getInfo(user_id=owner_id)
                     time.sleep(1)
                     person = response["person"]
-                    username = person["username"]["_content"]
-                    location = person.get("location", {}).get("_content", "None")
-                    description = person["description"]["_content"]
-                    firstdatetaken = person["photos"]["firstdatetaken"]["_content"]
-                    firstdate = int(person["photos"]["firstdate"]["_content"])
-                    photos_count = int(person["photos"]["count"]["_content"])
-
-                    insert_data_user(owner_id, username, location, description, firstdatetaken, firstdate, photos_count, photo_id, title, tags, url_n)
+                    insert_data_user(
+                          owner_id,
+                          person["username"]["_content"],
+                          person.get("location", {}).get("_content", "None"),
+                          person["description"]["_content"],
+                          person["photos"]["firstdatetaken"]["_content"], 
+                          int(person["photos"]["firstdate"]["_content"]), 
+                          int(person["photos"]["count"]["_content"]), 
+                          photo_id, 
+                          title, 
+                          tags, 
+                          url_n
+                    )
 
                 # 進捗を保存
                 save_last_processed_owner_id(owner_id)
@@ -137,11 +153,13 @@ for i in range(n_page):
                 if "comments" in response and "comment" in response["comments"]:
                     comments = response["comments"]["comment"]
                     for comment in comments:
-                        author = comment["author"]
-                        datecreate = int(comment["datecreate"])
-                        comment_content = comment["_content"]
-
-                    insert_data_comment(owner_id, photo_id, author, datecreate, comment_content)
+                        insert_data_comment(
+                            owner_id, 
+                            photo_id, 
+                            comment["author"], 
+                            int(comment["datecreate"]), 
+                            comment["_content"]
+                        )
 
                 # 進捗を保存
                 save_last_processed_comment_photo_id(photo_id)
@@ -189,23 +207,24 @@ for i in range(n_page):
                     response = flickr.people.getInfo(user_id=search_user_id)
                     time.sleep(1)
                     person = response["person"]
-                    username = person["username"]["_content"]
-                    location = person.get("location", {}).get("_content", "None")
-                    description = person["description"]['_content']
-                    firstdatetaken = person.get("firstdatetaken", {}).get("_content", "None")
-                    firstdate = int(person.get("firstdate", {}).get("_content", 0))
-                    photos_count = int(person["photos"]["count"]['_content'])
-
                     response = flickr.people.getPhotos(user_id=search_user_id, per_page=1, extras="tags,url_n")
                     time.sleep(1)
                     photos = response.get("photos", {})
                     first_photo = photos.get("photo", [{}])[0]
-                    photo_id = first_photo.get("id", "None")
-                    title = first_photo.get("title", "None")
-                    tags = first_photo.get("tags", "None")
-                    url_n = first_photo.get("url_n", "None")
-
-                    insert_data_user(search_user_id, username, location, description, firstdatetaken, firstdate, photos_count, photo_id, title, tags, url_n)
+                    
+                    insert_data_user(
+                        search_user_id, 
+                        person["username"]["_content"], 
+                        person.get("location", {}).get("_content", "None"), 
+                        person["description"]['_content'], 
+                        person.get("firstdatetaken", {}).get("_content", "None"), 
+                        int(person.get("firstdate", {}).get("_content", 0)), 
+                        int(person["photos"]["count"]['_content']), 
+                        first_photo.get("id", "None"), 
+                        first_photo.get("title", "None"), 
+                        first_photo.get("tags", "None"), 
+                        first_photo.get("url_n", "None")
+                    )
 
                 # 進捗を保存
                 save_last_processed_author(search_user_id)
@@ -251,9 +270,12 @@ for i in range(n_page):
                     time.sleep(1)
                     photo = response["photo"]
                     for person in photo["person"]:
-                        favorite_id = person["nsid"]
-                        favedate = int(person["favedate"])
-                        insert_data_favorite(owner_id, photo_id, favorite_id, favedate)
+                        insert_data_favorite(
+                            owner_id, 
+                            photo_id, 
+                            person["nsid"], 
+                            int(person["favedate"])
+                        )
 
                 # 進捗を保存
                 save_last_processed_favorite_photo_id(photo_id)
@@ -301,23 +323,24 @@ for i in range(n_page):
                     response = flickr.people.getInfo(user_id=search_user_id)
                     time.sleep(1)
                     person = response["person"]
-                    username = person["username"]["_content"]
-                    location = person.get("location", {}).get("_content", "None")
-                    description = person["description"]["_content"]
-                    firstdatetaken = person.get("firstdatetaken", {}).get("_content", "None")
-                    firstdate = int(person.get("firstdate", {}).get("_content", 0))
-                    photos_count = int(person["photos"]["count"]["_content"])
-
                     response = flickr.people.getPhotos(user_id=search_user_id, per_page=1, extras="tags,url_n")
                     time.sleep(1)
                     photos = response.get("photos", {})
                     first_photo = photos.get("photo", [{}])[0]
-                    photo_id = first_photo.get("id", "None")
-                    title = first_photo.get("title", "None")
-                    tags = first_photo.get("tags", "None")
-                    url_n = first_photo.get("url_n", "None")
 
-                    insert_data_user(search_user_id, username, location, description, firstdatetaken, firstdate, photos_count, photo_id, title, tags, url_n)
+                    insert_data_user(
+                        search_user_id, 
+                        person["username"]["_content"], 
+                        person.get("location", {}).get("_content", "None"), 
+                        person["description"]['_content'], 
+                        person.get("firstdatetaken", {}).get("_content", "None"), 
+                        int(person.get("firstdate", {}).get("_content", 0)), 
+                        int(person["photos"]["count"]['_content']), 
+                        first_photo.get("id", "None"), 
+                        first_photo.get("title", "None"), 
+                        first_photo.get("tags", "None"), 
+                        first_photo.get("url_n", "None")
+                    )
 
                 # 進捗を保存
                 save_last_processed_favorite_id(search_user_id)
