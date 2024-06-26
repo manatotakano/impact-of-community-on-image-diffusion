@@ -191,7 +191,7 @@ for i in range(n_page):
         last_processed_author = get_last_processed_author()
         skip = last_processed_author is not None
 
-        for (user_id) in results:
+        for (user_id,) in results:
             if skip:
                 if user_id == last_processed_author:
                     skip = False
@@ -307,7 +307,7 @@ for i in range(n_page):
         last_processed_favorite_id = get_last_processed_favorite_id()
         skip = last_processed_favorite_id is not None
 
-        for (user_id) in results:
+        for (user_id,) in results:
             if skip:
                 if user_id == last_processed_favorite_id:
                     skip = False
